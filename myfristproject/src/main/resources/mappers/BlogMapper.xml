@@ -382,8 +382,9 @@
     select count(*)from blog
     where publish=1
     <if test="param1!=null and param1!=''">
-      and title like #{param3}
+      and MATCH(title) AGAINST(#{param3})
       or text like #{param3}
+      or MATCH(introduction) AGAINST(#{param3})
     </if>
   </select>
 </mapper>
