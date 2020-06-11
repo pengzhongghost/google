@@ -1,0 +1,52 @@
+项目全局搜索功能sql语句的优化
+
+    (1)首先在数据库里面插入了100万条数据
+    CREATE PROCEDURE addData(IN insertcount INT)
+    BEGIN
+        DECLARE i int DEFAULT 0;
+        DECLARE c int DEFAULT 0;
+        DECLARE str VARCHAR(52) DEFAULT 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        DECLARE startIndex INT DEFAULT 1;
+        DECLARE len INT DEFAULT 1;
+         set autocommit=0;
+            WHILE c<insertcount DO
+            SET i=FLOOR(100+RAND()*10);
+        SET len=FLOOR(RAND()*(52-startIndex+1)+1);
+        SET startIndex=FLOOR(RAND()*52+1);
+            INSERT into blog(title,introduction,text,date,uid,publish)
+            VALUES('评论功能','mvc分页验证码',SUBSTR(str,startIndex,len),'2020-05-14 10:42:25',RAND()*20+1,1);
+            SET c=c+1;
+            END WHILE;
+            COMMIT;
+            set autocommit=1;
+    END
+
+    (2)建组合索引
+    orderby date 所有date在最前面,接着是publish,title, introduction, tid, uid
+
+    (3)EXPLAIN select b.date,b.title,b.introduction,b.tid,b.uid from blog b
+        where publish=1
+        and (title like '%评论%'
+        or introduction like '%评论%')
+        ORDER BY date DESC
+        LIMIT 1000000,10
+
+    (4)查询100万的数据只用了1.205秒
+
+    结论：全文索引不好用，比较慢
+
+    索引优化:
+    多表和三表
+    1.left join的特性是左表全部有，右表一定要建立索引
+    2.建立减少join语句中的nestedloop的循环次数，永远使用小结果集驱动大的结构集
+    3.left join左表一定全表扫描，所以全表扫描小表最好
+    4.索引列上少计算
+    5.范围之后全失效
+    6.尽量使用覆盖索引
+    7.!=和<>无法使用索引
+    8.Is null和is not null无法使用索引
+    9.百分like加右边,覆盖索引.like后面是也会失效
+    10.字符串不加单引号索引失效
+    11.or会导致索引失效
+    12.如果主查询的数据集大，则使用in,如果子查询的数据集大，则使用exist
+    13.orderby ,覆盖索引在前
