@@ -352,13 +352,12 @@
      and publish=0
   </update>
   <select id="selectBySome" resultType="blog">
-    select * from blog
-    where publish =1
-      <if test="param3!=null and param3!=''">
-          and MATCH(title) AGAINST(#{param3})
-          or text like #{param3}
-          or MATCH(introduction) AGAINST(#{param3})
-      </if>
+    select b.date,b.title,b.introduction,b.tid,b.uid from blog b
+    where publish=1
+    <if test="param3!=null and param3!=''">
+      and (title like #{param3}
+      or introduction like #{param3})
+    </if>
     ORDER BY date DESC
     LIMIT #{param1},#{param2}
   </select>
@@ -380,12 +379,11 @@
     limit 3,3;
   </select>
   <select id="countBySome" resultType="int">
-    select count(*)from blog
-    where publish=1
+    select count(*) from blog
+    where publish =1
     <if test="param1!=null and param1!=''">
-      and MATCH(title) AGAINST(#{param3})
-      or text like #{param3}
-      or MATCH(introduction) AGAINST(#{param3})
+      and (title like #{param1}
+      or introduction like #{param1})
     </if>
   </select>
 </mapper>
